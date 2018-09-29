@@ -85,6 +85,8 @@ const mk_kibana_firewall = async () => {
 ```
 
 #### creating a single md node cluster w/ Kibana
+you can find your default gce service account [here](https://console.cloud.google.com/iam-admin/iam)
+
 ```
 // replace w/ yours
 const gce_service_acc = '123456-compute@developer.gserviceaccount.com';
