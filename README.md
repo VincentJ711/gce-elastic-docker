@@ -18,8 +18,9 @@ With that said, I would strongly suggest you try and push a simple image to your
 `npm install gce-elastic-docker`
 
 ### Examples
+If you would like to run these examples (recommended), copy/paste the files in ./examples and run them, ie `node single-node-ex` and `node multi-node-ex`. Also please make sure you delete the VMs when you are not using them, otherwise charges will incur on your GCE billing account. You can find your VMs [here](https://console.cloud.google.com/compute/instances).
 #### creating an Elasticsearch Docker image locally
-
+you can view your local images w/ `docker images`
 ```
 const ged = require('gce-elastic-docker');
 const verbose = true;
@@ -49,6 +50,7 @@ const mk_kib_image = async () => {
 ```
 
 #### deploying them to Google Container Registry
+you can find your registry [here](https://console.cloud.google.com/gcr/images) and then select your project.
 
 ```
 const deploy_es_image = async () => {
@@ -68,6 +70,7 @@ const deploy_kib_image = async () => {
 ```
 
 #### creating a firewall rule for your Kibana nodes
+you can find your firewall rules [here](https://console.cloud.google.com/networking/firewalls)
 ```
 const kibana_firewall = 'kibana-firewall';
 const kibana_network_tag = 'kibana-network-tag';
