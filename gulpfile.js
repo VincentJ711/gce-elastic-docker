@@ -5,6 +5,7 @@ const gulp_rename = require('gulp-rename');
 const gulp_watch = require('gulp-watch');
 const ts = require('gulp-typescript');
 const vinyl_source = require('vinyl-source-stream');
+const exec = require('child_process').exec;
 
 const ts_project = ts.createProject('tsconfig.json', {
   isolatedModules: !argv.c,
@@ -48,6 +49,43 @@ gulp.task('flatten-src', async () => {
         .on('finish', handle_other_files)
         .on('finish', () => {
       resolve();
+    });
+  });
+});
+
+gulp.task('regen-gce', async () => {
+  const cmd = `gcloud compute machine-types list --format=json`;
+  await new Promise((resolve, reject) => {
+    exec(cmd, { maxBuffer: 1024 * 100000 }, (err, stdout) => {
+      if (err) {
+        reject(err);
+      } else {
+        const mtypes_arr = JSON.parse(stdout);
+        const mtypes = {};
+        const mtypes_atoz = {};
+        const regions = {};
+
+        mtypes_arr.forEach(mtype => mtypes[mtype.zone] = []);
+        mtypes_arr.forEach(mtype => mtypes[mtype.zone].push(mtype.name));
+
+        for (const zone in mtypes) {
+          mtypes[zone] = mtypes[zone].sort();
+        }
+
+        Object.keys(mtypes).sort().forEach(zone => mtypes_atoz[zone] = mtypes[zone]);
+
+        Object.keys(mtypes_atoz)
+            .forEach(zone => regions[zone.slice(0, -2)] = zone.slice(0, 1));
+
+        console.log('');
+        console.log(JSON.stringify(mtypes_atoz,null,2));
+        console.log('');
+        console.log(JSON.stringify(Object.keys(mtypes_atoz),null,2));
+        console.log('');
+        console.log(JSON.stringify(regions,null,2));
+        console.log('');
+        resolve();
+      }
     });
   });
 });

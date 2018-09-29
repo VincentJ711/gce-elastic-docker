@@ -110,7 +110,6 @@ const mk_node = async () => {
 };
 ```
 
-
 #### creating nodes for a 4 node cluster (3 md, 1 Kibana)
 ```
 const mk_cluster = async () => {
@@ -197,7 +196,24 @@ Everything that follows can be found on the `gce` object. Fields with ? denote a
 - `kibana_password_file` the file in the Kibana containers where your Kibana users are stored.
 - `kibana_users_env_var` the environment variable that has your initial list of Kibana users.
 - `registries` the GCE Container Registries used.
-- `m_types` the GCE machine types used.
+- `m_types` an object of GCE zones to GCE machine types. ie
+
+  ```
+  {
+    'us-west2-b': [
+      'f1-micro',
+      'g1-small'
+      ...
+    ],
+    'us-west2-c': [
+      'f1-micro',
+      'g1-small'
+      ...
+    ]
+    ...
+  }
+  ```
+
 - `zones` the GCE zones used.
 - `regions` the GCE regions used.
 - `short_regions` shorter versions of `ged.regions`. use this if you want to include a shorter version of a region in your node names.

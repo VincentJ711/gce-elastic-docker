@@ -80,10 +80,10 @@ export class BaseNode implements IBaseNode {
     this._set_labels(v.labels);
     this._set_master(v);
     this._set_max_map_count(v);
+    this._set_zone(v); // must set zone b4 mtype.
     this._set_mtype(v);
     this._set_name(v);
     this._set_service_account(v);
-    this._set_zone(v);
     this.region = this.zone.slice(0, -2);
     this.short_region = short_regions[this.region];
   }
@@ -270,8 +270,9 @@ export class BaseNode implements IBaseNode {
   }
 
   private _set_mtype(v: IBaseNode) {
-    if (m_types.indexOf(v.mtype) === -1) {
-      throw Error(`mtype of ${v.mtype} is an invalid gce machine type`);
+    if (m_types[this.zone].indexOf(v.mtype) === -1) {
+      throw Error(`mtype of ${v.mtype} is an invalid gce machine ` +
+          `type for zone ${this.zone}`);
     }
     this.mtype = v.mtype;
   }
