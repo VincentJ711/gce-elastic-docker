@@ -1,0 +1,184 @@
+{
+  "rules": {
+    "brace-style": [
+      true,
+      "1tbs",
+      {
+        "allowSingleLine": false
+      }
+    ],
+    "no-multi-spaces": [
+      true
+    ],
+    "ter-computed-property-spacing": [true, "never"],
+    "ter-func-call-spacing": [true, "never"],
+    "object-curly-spacing": [
+      true,
+      "always"
+    ],
+    "ter-padded-blocks": [
+      true,
+      "never"
+    ],
+    "prefer-const": true,
+    "ban-types": [
+      true,
+      [
+        "Object",
+        "Use 'object' instead."
+      ],
+      [
+        "String",
+        "Use 'string' instead."
+      ],
+      [
+        "Number",
+        "Use 'number' instead."
+      ],
+      [
+        "Boolean",
+        "Use 'boolean' instead."
+      ]
+    ],
+    "member-access": [
+      true,
+      "no-public"
+    ],
+    "member-ordering": [
+      true,
+      {
+        "alphabetize": true,
+        "order": [
+          "public-static-field",
+          "public-static-method",
+          "protected-static-field",
+          "protected-static-method",
+          "private-static-field",
+          "private-static-method",
+          "public-instance-field",
+          "protected-instance-field",
+          "private-instance-field",
+          "public-constructor",
+          "public-instance-method",
+          "protected-instance-method",
+          "private-instance-method"
+        ]
+      }
+    ],
+    "no-any": false,
+    "no-inferrable-types": true,
+    "no-reference": true,
+    "only-arrow-functions": true,
+    "curly": true,
+    "no-duplicate-switch-case": true,
+    "no-string-literal": true,
+    "no-string-throw": true,
+    "no-this-assignment": true,
+    "no-unused-expression": [
+      true,
+      "allow-fast-null-checks",
+      "allow-new"
+    ],
+    "radix": true,
+    "triple-equals": true,
+    "max-line-length": [
+      true,
+      100
+    ],
+    "align": [
+      true,
+      "parameters",
+      "statements",
+      "arguments",
+      "members",
+      "elements"
+    ],
+    "arrow-parens": [
+      true,
+      "ban-single-arg-parens"
+    ],
+    "arrow-return-shorthand": true,
+    "binary-expression-operand-order": true,
+    "class-name": true,
+    "comment-format": [
+      true,
+      "check-space",
+      "check-lowercase",
+      {
+        "ignore-words": [
+          "TODO",
+          "NOTE"
+        ]
+      }
+    ],
+    "no-consecutive-blank-lines": true,
+    "no-unnecessary-callback-wrapper": true,
+    "no-unnecessary-initializer": true,
+    "object-literal-key-quotes": [
+      true,
+      "as-needed"
+    ],
+    "one-line": [
+      true,
+      "check-open-brace",
+      "check-whitespace",
+      "check-else",
+      "check-catch",
+      "check-finally"
+    ],
+    "one-variable-per-declaration": [
+      true,
+      "ignore-for-loop"
+    ],
+    "ordered-imports": [
+      true
+    ],
+    "space-in-parens": [
+      true,
+      "never"
+    ],
+    "prefer-method-signature": true,
+    "quotemark": [
+      true,
+      "single",
+      "avoid-template",
+      "avoid-escape"
+    ],
+    "semicolon": [
+      true,
+      "always",
+      "strict-bound-class-methods"
+    ],
+    "trailing-comma": [
+      true,
+      {
+        "multiline": "never",
+        "singleline": "never",
+        "esSpecCompliant": true
+      }
+    ],
+    "space-before-function-paren": [
+      true,
+      "never"
+    ],
+    "whitespace": [
+      true,
+      "check-branch",
+      "check-decl",
+      "check-operator",
+      "check-module",
+      "check-separator",
+      "check-rest-spread",
+      "check-type",
+      "check-typecast",
+      "check-type-operator",
+      "check-preblock"
+    ],
+    "no-default-export": true,
+    "no-var-keyword": true,
+    "object-literal-sort-keys": true
+  },
+  "rulesDirectory": [
+    "node_modules/tslint-eslint-rules/dist/rules"
+  ]
+}
