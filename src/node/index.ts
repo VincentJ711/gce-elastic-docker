@@ -26,12 +26,14 @@ export class Node extends BaseNode implements INode {
       // get the current ephemeral/internal ip addresses
       const eip = vm.networkInterfaces[0].accessConfigs[0].natIP;
       const ip = vm.networkInterfaces[0].networkIP;
+      const created = (new Date(vm.creationTimestamp)).valueOf();
 
       vm.metadata.items.forEach(m => {
         if (m.key === 'gce-container-declaration') {
           tmp.push({
             // the spec for the container is yaml, so parse it to json
             container_decl: safeLoad(m.value),
+            created: created,
             eip: eip,
             ip: ip
           });
@@ -46,10 +48,12 @@ export class Node extends BaseNode implements INode {
         const env = Buffer.from(envb64, 'base64').toString();
         const tmp_node: INode = JSON.parse(env);
 
-        // on node creation, ips are not set because they are unknown,
-        // therefore assume both ips do not exist which is why we set them here.
+        // on node creation, ips/created are not set because they are unknown,
+        // which is why we set them here.
         tmp_node.ip = t.ip;
         tmp_node.eip = t.eip;
+        tmp_node.created = t.created;
+
         return new Node(tmp_node);
       } catch (e) {
         console.log('Cant fetch env for some odd reason...');
