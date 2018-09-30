@@ -114,6 +114,8 @@ export class NodeCreator {
       const copy: INode = JSON.parse(JSON.stringify(this.n));
       copy.ip = dat[0].networkInterfaces[0].networkIP;
       copy.eip = dat[0].networkInterfaces[0].accessConfigs[0].natIP;
+      copy.created = (new Date(dat[0].creationTimestamp)).valueOf();
+
       return new Node(copy);
     } catch (e) {
       removeSync(tmp_env_file);

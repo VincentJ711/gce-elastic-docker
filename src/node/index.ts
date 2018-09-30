@@ -5,6 +5,7 @@ import { NodeUpdater } from '../node-updater';
 import { Utils } from '../utils';
 
 export interface INode extends IBaseNode {
+  created: number;
   eip: string;
   ip: string;
 }
@@ -57,11 +58,13 @@ export class Node extends BaseNode implements INode {
     });
   }
 
+  created: number;
   eip: string;
   ip: string;
 
   constructor(v: INode) {
     super(v);
+    this._set_created(v);
     this._set_ip(v);
     this._set_eip(v);
   }
@@ -163,6 +166,13 @@ export class Node extends BaseNode implements INode {
       };
       again();
     });
+  }
+
+  private _set_created(v: INode) {
+    if (!Utils.is_integer(v.created) || (v.created <= 0)) {
+      throw Error('invalid value for created.');
+    }
+    this.created = v.created;
   }
 
   private _set_eip(v: INode) {

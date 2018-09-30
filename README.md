@@ -512,11 +512,13 @@ The following tasks are executed in the order you see.
 
   ```
   {
+    created: number;
     ip: string;
     eip: string;
   }
   ```
 
+  - `created` when the nodes VM was created in milliseconds since epoch (UTC).
   - `ip` the internal ip set on the VM. this ip does not change between VM starts/stops.
   - `eip` the external ip set on the VM. this ip is ephemeral and therefore DOES change between VM starts/stops. You should only use this to access your Kibana nodes through the browser.
 - `prototype.update(opts: INodeUpdateOpts): INodeUpdateTasks` executes all the tasks found on `INodeUpdateTasks`. This restarts the VM the node is hosted on.
