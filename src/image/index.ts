@@ -24,11 +24,13 @@ export class Image implements IImage {
   name: string;
   private _es_dockerfile: string;
   private _kib_dockerfile: string;
+  private _kibana_entry: string;
 
   constructor(v: IImage) {
     this._set_es_version(v);
     this._set_kibana(v);
     this._set_name(v);
+    this._set_kibana_entry_file();
     this._create_es_dockerfile();
     this._create_kib_dockerfile();
   }
@@ -44,9 +46,14 @@ export class Image implements IImage {
     }
 
     // docker build requires u be in the directory u copy files from...
-    process.chdir(__dirname);
-    await Utils.exec(cmd, verbose);
-    process.chdir(cwd);
+    try {
+      process.chdir(__dirname);
+      Utils.exec_sync(cmd, verbose);
+      process.chdir(cwd);
+    } catch (e) {
+      process.chdir(cwd);
+      throw e;
+    }
 
     if (verbose) {
       console.log(`\nimage ${this.name} created!`);
@@ -65,7 +72,7 @@ export class Image implements IImage {
   }
 
   private _create_es_dockerfile() {
-    const startup_file = 'startup.sh';
+    const startup_file = '/usr/local/bin/startup.sh';
 
     this._es_dockerfile =
         `FROM docker.elastic.co/elasticsearch/elasticsearch:${this.es_version}\n` +
@@ -74,15 +81,15 @@ export class Image implements IImage {
         `RUN echo 'ulimit -l unlimited' >> ${startup_file}\n` +
         `RUN echo '/usr/local/bin/docker-entrypoint.sh eswrapper' >> ${startup_file}\n` +
         `RUN chmod 777 ${startup_file}\n` +
-        `ENTRYPOINT ./${startup_file}`;
+        `ENTRYPOINT ${startup_file}`;
   }
 
   private _create_kib_dockerfile() {
     const kurl = 'https://artifacts.elastic.co/downloads/kibana/kibana';
-    const startup_file = 'startup.sh';
+    const startup_file = '/usr/local/bin/startup.sh';
     const pfile = kibana_password_file;
     const kenv = kibana_users_env_var;
-    const cmd = 'nginx & /usr/share/kibana/bin/kibana --server.host=0.0.0.0 ' +
+    const cmd = 'nginx & /usr/local/bin/kentry.sh --server.host=0.0.0.0 ' +
         '& /usr/local/bin/docker-entrypoint.sh eswrapper ';
     const psetfile = kibana_password_set_file;
     const psetfile_msg = 'This file indicates to the startup script your initial ' +
@@ -94,9 +101,11 @@ export class Image implements IImage {
 
     this._kib_dockerfile =
         `FROM docker.elastic.co/elasticsearch/elasticsearch:${this.es_version}\n` +
-        'WORKDIR /usr/share\n' +
-        `RUN wget -q ${kurl}-${this.es_version}-x86_64.rpm\n` +
-        `RUN rpm --install kibana-${this.es_version}-x86_64.rpm\n` +
+        'WORKDIR /usr/share/kibana\n' +
+        `RUN curl -Ls ${kurl}-${this.es_version}-linux-x86_64.tar.gz | ` +
+            'tar --strip-components=1 -zxf -\n' +
+        `COPY ${this._kibana_entry} /usr/local/bin/kentry.sh\n` +
+        'RUN chmod 777 /usr/local/bin/kentry.sh\n' +
         'RUN yum install -y epel-release\n' +
         'RUN yum install -y nginx\n' +
         'RUN yum install -y httpd-tools\n' +
@@ -122,7 +131,8 @@ export class Image implements IImage {
         `RUN echo 'ulimit -l unlimited' >> ${startup_file}\n` +
         `RUN echo '${cmd}' >> ${startup_file}\n` +
         `RUN chmod 777 ${startup_file}\n` +
-        `ENTRYPOINT ./${startup_file}`;
+        'WORKDIR /usr/share\n' +
+        `ENTRYPOINT ${startup_file}`;
   }
 
   private _set_es_version(v: IImage) {
@@ -137,6 +147,17 @@ export class Image implements IImage {
       throw Error('not a boolean.');
     }
     this.kibana = !!v.kibana;
+  }
+
+  private _set_kibana_entry_file() {
+    if (this.es_version[0] === '5') {
+      this._kibana_entry = 'kentry-5_x';
+    } else if (this.es_version[0] === '6') {
+      this._kibana_entry = 'kentry-6_x';
+    } else {
+      throw Error(`kibana ${this.es_version} not supported! ` +
+          'a startup script still has to be added for this major version.');
+    }
   }
 
   private _set_name(v: IImage) {

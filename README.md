@@ -535,6 +535,9 @@ The following tasks are executed in the order you see.
   const status = JSON.parse(resp).status; // yellow | green | red ...
   ```
 
+## supported versions of Elasticsearch/Kibana
+Currently, 5.x and 6.x should work. When future major versions are released, i'll do my best to keep up to date.
+
 ## FAQ
 For general insight into how this package works, I strongly recommend you create a single node cluster and set verbose to true.
 
@@ -607,9 +610,9 @@ For general insight into how this package works, I strongly recommend you create
 - How do i restart Kibana on my Kibana nodes?
   - get into the container on the vm
     ```
-    ps -ef | grep /usr/share/kibana # get the pid
+    ps -e | grep node # get the pid
     kill -9 <pid>
-    /usr/share/kibana/bin/kibana --server.host=0.0.0.0 &
+    /usr/local/bin/kentry.sh --server.host=0.0.0.0 &
     ```
 
 - Which processes are monitored/restarted on my Kibana nodes?
