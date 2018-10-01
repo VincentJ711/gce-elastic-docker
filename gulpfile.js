@@ -28,7 +28,7 @@ const handle_typescript_files = () => {
 };
 
 const handle_other_files = () => {
-  return gulp.src([`./src/**/*.*`, `!./src/**/*.ts`])
+  return gulp.src([`./src/**`, `!./src/**/*.ts`])
     .pipe(cache())
     .pipe(gulp_rename(rename))
     .pipe(gulp.dest('./dist'));
