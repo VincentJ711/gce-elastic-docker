@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import { registries, short_regions, zones } from '../gce';
 
 export class Utils {
@@ -17,6 +17,18 @@ export class Utils {
         proc.stderr.pipe(process.stderr);
       }
     });
+  }
+
+  static exec_sync(cmd: string, verbose?: boolean) {
+    const stdio = verbose ? [0, 1, 2] : undefined;
+    const res = execSync(cmd, { maxBuffer: 1024 * 100000, stdio: stdio });
+    if (res === null) {
+      return undefined;
+    } else if (res instanceof Buffer) {
+      return res.toString();
+    } else {
+      return res;
+    }
   }
 
   static get_zones_in_region(region: string) {
