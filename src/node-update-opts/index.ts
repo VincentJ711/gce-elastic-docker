@@ -15,10 +15,12 @@ export class NodeUpdateOpts implements INodeUpdateOpts {
   verbose: boolean;
 
   constructor(v: INodeUpdateOpts) {
-    this._set_interval(v);
-    this._set_scripts(v);
-    this._set_sm(v);
-    this._set_verbose(v);
+    if (Utils.is_defined(v)) {
+      this._set_interval(v);
+      this._set_scripts(v);
+      this._set_sm(v);
+      this._set_verbose(v);
+    }
   }
 
   private _set_interval(v: INodeUpdateOpts) {

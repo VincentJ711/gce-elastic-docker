@@ -24,12 +24,14 @@ export class NodeCreateOpts implements INodeCreateOpts {
   verbose: boolean;
 
   constructor(v: INodeCreateOpts) {
-    this._set_interval(v);
-    this._set_kibana_network_tag(v);
-    this._set_kibana_users(v);
-    this._set_scripts(v);
-    this._set_sm(v);
-    this._set_verbose(v);
+    if (Utils.is_defined(v)) {
+      this._set_interval(v);
+      this._set_kibana_network_tag(v);
+      this._set_kibana_users(v);
+      this._set_scripts(v);
+      this._set_sm(v);
+      this._set_verbose(v);
+    }
   }
 
   get_kibana_users_env_value() {
