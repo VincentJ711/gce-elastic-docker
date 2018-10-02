@@ -38,22 +38,14 @@ export class Image implements IImage {
   async create(verbose?: boolean) {
     const dockerfile = this.kibana ? this._kib_dockerfile : this._es_dockerfile;
     const cmd = `docker build -t ${this.name} . -f-<<EOF\n${dockerfile}\nEOF`;
-    const cwd = process.cwd();
 
     if (verbose) {
       console.log(`creating image ${this.name} from the following dockerfile:\n`);
       console.log(dockerfile + '\n');
     }
 
-    // docker build requires u be in the directory u copy files from...
-    try {
-      process.chdir(__dirname);
-      Utils.exec_sync(cmd, verbose);
-      process.chdir(cwd);
-    } catch (e) {
-      process.chdir(cwd);
-      throw e;
-    }
+    // docker build requires u be in the directory u copy files from
+    await Utils.exec(cmd, verbose, __dirname);
 
     if (verbose) {
       console.log(`\nimage ${this.name} created!`);

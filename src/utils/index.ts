@@ -1,10 +1,10 @@
-import { exec, execSync } from 'child_process';
+import { exec } from 'child_process';
 import { registries, short_regions, zones } from '../gce';
 
 export class Utils {
-  static exec(cmd: string, verbose?: boolean) {
+  static exec(cmd: string, verbose?: boolean, wd?: string) {
     return new Promise((resolve, reject) => {
-      const proc = exec(cmd, { maxBuffer: 1024 * 100000 }, (err, stdout) => {
+      const proc = exec(cmd, { maxBuffer: 1024 * 100000, cwd: wd }, (err, stdout) => {
         if (err) {
           reject(err);
         } else {
@@ -17,18 +17,6 @@ export class Utils {
         proc.stderr.pipe(process.stderr);
       }
     });
-  }
-
-  static exec_sync(cmd: string, verbose?: boolean) {
-    const stdio = verbose ? [0, 1, 2] : undefined;
-    const res = execSync(cmd, { maxBuffer: 1024 * 100000, stdio: stdio });
-    if (res === null) {
-      return undefined;
-    } else if (res instanceof Buffer) {
-      return res.toString();
-    } else {
-      return res;
-    }
   }
 
   static get_zones_in_region(region: string) {
