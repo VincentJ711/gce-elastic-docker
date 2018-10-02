@@ -542,9 +542,9 @@ Currently, 5.x and 6.x should work. When future major versions are released, i'l
 For general insight into how this package works, I strongly recommend you create a single node cluster and set verbose to true.
 
 - What can i / cant i update for a node/VM?
-  - The only things you can update are those fields on `ChildNode.prototype` that have public setter methods, ie methods which do not start with an `_`. Currently this is `ChildNode.prototype.set_env` and `ChildNode.prototype.set_hsize`. Most of the things you will need to update for Elasticsearch can be done through setting environment variables.
+  - The only things you can update are those fields on `BaseNode.prototype` that have public setter methods, ie methods which do not start with an `_`. Currently this is `BaseNode.prototype.set_env` and `BaseNode.prototype.set_hsize`. Most of the things you will need to update for Elasticsearch/Kibana can be done through setting environment variables.
 - How do i update a node/VM?
-  - call the setter method on the `Node` instance and then call the `prototype.update` method. This method is asyncronous and actually takes the changes you set on the local instance and commits them to the VM instance.
+  - call the setter method on the `Node` instance and then call its `prototype.update` method. This method is asynchronous and actually takes the changes you set on the local instance and commits them to the VM instance.
 - How are updates persisted?
   - Environment variables can be set for a Container VM. All the environment variables you set/update are set/update there as well. In addition to those you set, this package base64 encodes a stringified version of the `Node` instance and stores it as an environment variable, specifically the `ged` environment variable.
 - How are the VMs this package created distinguished from my other VMs?
