@@ -129,7 +129,7 @@ const connect_nodes = async (nodes) => {
   });
 
   await Promise.all(promises);
-  console.log(`Done! Visit ${nodes[0].eip} and sign in as tom hanks :)`);
+  console.log(`Done! Visit the external ip of ${nodes[0].name} and sign in as tom hanks :)`);
   return nodes;
 };
 

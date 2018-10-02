@@ -6,7 +6,6 @@ import { Utils } from '../utils';
 
 export interface INode extends IBaseNode {
   created: number;
-  eip: string;
   ip: string;
 }
 
@@ -23,8 +22,7 @@ export class Node extends BaseNode implements INode {
     const tmp: any[] = [];
 
     vms.forEach(vm => {
-      // get the current ephemeral/internal ip addresses
-      const eip = vm.networkInterfaces[0].accessConfigs[0].natIP;
+      // get the internal ip/create time
       const ip = vm.networkInterfaces[0].networkIP;
       const created = (new Date(vm.creationTimestamp)).valueOf();
 
@@ -34,7 +32,6 @@ export class Node extends BaseNode implements INode {
             // the spec for the container is yaml, so parse it to json
             container_decl: safeLoad(m.value),
             created: created,
-            eip: eip,
             ip: ip
           });
         }
@@ -48,10 +45,9 @@ export class Node extends BaseNode implements INode {
         const env = Buffer.from(envb64, 'base64').toString();
         const tmp_node: INode = JSON.parse(env);
 
-        // on node creation, ips/created are not set because they are unknown,
+        // on node creation, ip/created are not set because they are unknown,
         // which is why we set them here.
         tmp_node.ip = t.ip;
-        tmp_node.eip = t.eip;
         tmp_node.created = t.created;
 
         return new Node(tmp_node);
@@ -63,14 +59,12 @@ export class Node extends BaseNode implements INode {
   }
 
   created: number;
-  eip: string;
   ip: string;
 
   constructor(v: INode) {
     super(v);
     this._set_created(v);
     this._set_ip(v);
-    this._set_eip(v);
   }
 
   // command should be wrapped in "" | ''. let the user decide.
@@ -177,13 +171,6 @@ export class Node extends BaseNode implements INode {
       throw Error('invalid value for created.');
     }
     this.created = v.created;
-  }
-
-  private _set_eip(v: INode) {
-    if (!Utils.is_string(v.eip) || !v.eip) {
-      throw Error('eip not a valid string');
-    }
-    this.eip = v.eip;
   }
 
   private _set_ip(v: INode) {

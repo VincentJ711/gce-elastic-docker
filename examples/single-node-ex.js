@@ -99,9 +99,7 @@ const mk_node = async () => {
       .catch(err => console.error(err, 9.5));
 
   const node = await tasks.main.on_end();
-
-  console.log(`Done! Visit ${node.eip} and sign in as tom hanks :)`);
-
+  console.log(`Done! Visit the external ip of ${node.name} and sign in as tom hanks :)`);
   return node;
 };
 

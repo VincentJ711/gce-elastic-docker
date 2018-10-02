@@ -355,7 +355,7 @@ The following tasks are executed in the order you see.
 ```
 
 - `main` ""
-- `node_update` will resolve w/ an instanceof Node once the VM has been updated. note, this node has the new ephemeral external ip that was placed onto the VM (whenever a VM is restarted, if it has an ephemeral IP, it is replaced).
+- `node_update` will resolve w/ an instanceof Node once the VM has been updated.
 - `elastic_ready` ""
 - `kibana_ready` ""
 - `sm_upload` ""
@@ -514,13 +514,11 @@ The following tasks are executed in the order you see.
   {
     created: number;
     ip: string;
-    eip: string;
   }
   ```
 
   - `created` when the nodes VM was created in milliseconds since epoch (UTC).
   - `ip` the internal ip set on the VM. this ip does not change between VM starts/stops.
-  - `eip` the external ip set on the VM. this ip is ephemeral and therefore DOES change between VM starts/stops. You should only use this to access your Kibana nodes through the browser.
 - `prototype.update(opts: INodeUpdateOpts): INodeUpdateTasks` executes all the tasks found on `INodeUpdateTasks`. This restarts the VM the node is hosted on.
 - `prototype.start(verbose?: boolean[false])` starts the hosting VM.
 - `prototype.stop(verbose?: boolean[false])` stops the hosting VM

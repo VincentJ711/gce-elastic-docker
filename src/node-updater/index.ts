@@ -80,8 +80,8 @@ export class NodeUpdater {
       removeSync(tmp_env_file);
 
       const dat = JSON.parse(<string> res);
-      this.n.eip = dat.networkInterfaces[0].accessConfigs[0].natIP;
       this.n.ip = dat.networkInterfaces[0].networkIP;
+      this.n.created = (new Date(dat.creationTimestamp)).valueOf();
     } catch (e) {
       removeSync(tmp_env_file);
       this._stop_at_task(task, e);
