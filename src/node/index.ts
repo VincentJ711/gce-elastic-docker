@@ -19,7 +19,7 @@ export class Node extends BaseNode implements INode {
     }
 
     const vms: any[] = JSON.parse(<string> await Utils.exec(cmd, verbose));
-    const tmp: any[] = [];
+    const ret: any[] = [];
 
     vms.forEach(vm => {
       // get the internal ip/create time
@@ -28,34 +28,25 @@ export class Node extends BaseNode implements INode {
 
       vm.metadata.items.forEach(m => {
         if (m.key === 'gce-container-declaration') {
-          tmp.push({
-            // the spec for the container is yaml, so parse it to json
-            container_decl: safeLoad(m.value),
-            created: created,
-            ip: ip
-          });
+          const container_decl = safeLoad(m.value);
+          const envs = container_decl.spec.containers[0].env;
+          const envb64 = envs.filter(e => e.name === ged_label)[0].value;
+          const env = Buffer.from(envb64, 'base64').toString();
+          const tmp_node: INode = JSON.parse(env);
+
+          tmp_node.ip = ip;
+          tmp_node.created = created;
+
+          // will throw if internal ip/created are not yet set  so disregard
+          // those nodes. this will occur only when they are being created.
+          try {
+            ret.push(new Node(tmp_node));
+          } catch (e) {}
         }
       });
     });
 
-    return tmp.map(t => {
-      try {
-        const envs = t.container_decl.spec.containers[0].env;
-        const envb64 = envs.filter(e => e.name === ged_label)[0].value;
-        const env = Buffer.from(envb64, 'base64').toString();
-        const tmp_node: INode = JSON.parse(env);
-
-        // on node creation, ip/created are not set because they are unknown,
-        // which is why we set them here.
-        tmp_node.ip = t.ip;
-        tmp_node.created = t.created;
-
-        return new Node(tmp_node);
-      } catch (e) {
-        console.log('Cant fetch env for some odd reason...');
-        throw e;
-      }
-    });
+    return ret;
   }
 
   created: number;
