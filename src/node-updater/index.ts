@@ -76,12 +76,8 @@ export class NodeUpdater {
         console.log(`updating node ${this.n.name} w/ the following command:\n\n${cmd}`);
       }
 
-      const res = await Utils.exec(cmd);
+      await Utils.exec(cmd);
       removeSync(tmp_env_file);
-
-      const dat = JSON.parse(<string> res);
-      this.n.ip = dat.networkInterfaces[0].networkIP;
-      this.n.created = (new Date(dat.creationTimestamp)).valueOf();
     } catch (e) {
       removeSync(tmp_env_file);
       this._stop_at_task(task, e);
