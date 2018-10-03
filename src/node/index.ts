@@ -58,6 +58,19 @@ export class Node extends BaseNode implements INode {
     this._set_ip(v);
   }
 
+  // returns the standard elasticsearch json response for GET _cluster/health
+  async cluster_health(verbose?: boolean) {
+    if (verbose) {
+      console.log(`fetching cluster health for ${this.name}`);
+    }
+
+    try {
+      const cmd = '"curl -s localhost:9200/_cluster/health"';
+      const res = await this.curl(cmd);
+      return JSON.parse(<string> res);
+    } catch (e) { }
+  }
+
   // returns green | yellow | red | undefined
   async cluster_state(verbose?: boolean) {
     if (verbose) {
@@ -65,9 +78,7 @@ export class Node extends BaseNode implements INode {
     }
 
     try {
-      const cmd = '"curl -s localhost:9200/_cluster/health"';
-      const res = await this.curl(cmd);
-      return JSON.parse(<string> res).status;
+      return (await this.cluster_health()).status;
     } catch (e) { }
   }
 
