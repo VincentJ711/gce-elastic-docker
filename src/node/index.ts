@@ -58,6 +58,19 @@ export class Node extends BaseNode implements INode {
     this._set_ip(v);
   }
 
+  // returns green | yellow | red | undefined
+  async cluster_state(verbose?: boolean) {
+    if (verbose) {
+      console.log(`fetching cluster state for ${this.name}`);
+    }
+
+    try {
+      const cmd = '"curl -s localhost:9200/_cluster/health"';
+      const res = await this.curl(cmd);
+      return JSON.parse(<string> res).status;
+    } catch (e) { }
+  }
+
   // command should be wrapped in "" | ''. let the user decide.
   async curl(cmd: string, verbose?: boolean) {
     if (!Utils.is_string(cmd) || !cmd) {
@@ -70,7 +83,7 @@ export class Node extends BaseNode implements INode {
       console.log(`executing: ${wrapped_cmd}`);
     }
 
-    await Utils.exec(wrapped_cmd, verbose);
+    return await Utils.exec(wrapped_cmd, verbose);
   }
 
   async delete(verbose?: boolean) {
@@ -81,6 +94,21 @@ export class Node extends BaseNode implements INode {
     }
 
     await Utils.exec(cmd, verbose);
+  }
+
+  // returns number | undefined
+  async kibana_status(verbose?: boolean) {
+    if (!this.kibana) {
+      return;
+    } else if (verbose) {
+      console.log(`fetching kibana status for ${this.name}`);
+    }
+
+    try {
+      const cmd = '"curl -s -o /dev/null -w "%{http_code}" localhost:5601"';
+      const res = await this.curl(cmd);
+      return res ? Number(res) : undefined;
+    } catch (e) { }
   }
 
   async restart(verbose?: boolean) {
@@ -113,46 +141,49 @@ export class Node extends BaseNode implements INode {
   }
 
   async wait_for_elastic(interval: number, verbose?: boolean) {
-    const cmd = `gcloud compute ssh ${this.name} --zone ${this.zone} ` +
-        '--command "curl -s localhost:9200/_cluster/health"';
+    if (!Utils.is_number(interval) || (interval < 1000)) {
+      throw Error('gap time between consecutive requests must be >= 1000');
+    }
 
     if (verbose) {
-      console.log(`waiting for state >= yellow from elastic for ${this.name} via\n${cmd}`);
-    } else if (!Utils.is_number(interval) || (interval < 1000)) {
-      throw Error('gap time between consecutive requests must be >= 1000');
+      console.log(`waiting for state >= yellow from elastic for ${this.name}`);
     }
 
     await new Promise(resolve => {
       let cnt = 0;
+
       const again = () => {
-        const time = !cnt++ ? Math.random() * interval : interval;
-        setTimeout(() => wait_for_elastic_helper(cmd, again, resolve, this.name, verbose), time);
+        setTimeout(async() => {
+          const state = await this.cluster_state(verbose);
+          /yellow|green/.test(state) ? resolve() : again();
+        }, !cnt++ ? Math.random() * interval : interval);
       };
+
       again();
     });
   }
 
   async wait_for_kibana(interval: number, verbose?: boolean) {
     if (!this.kibana) {
-      throw Error('This node isnt a kibana node! You\'ll never get a 200 response.');
+      throw Error(`${this.name} isnt a kibana node! You\'ll never get a 200 response.`);
     } else if (!Utils.is_number(interval) || (interval < 1000)) {
       throw Error('gap time between consecutive requests must be >= 1000');
     }
 
-    const cmd = `gcloud compute ssh ${this.name} ` +
-        `--zone ${this.zone} ` +
-        `--command 'curl -s -o /dev/null -w "%{http_code}" localhost:5601'`;
-
     if (verbose) {
-      console.log(`waiting for status 200 from kibana for ${this.name} via\n${cmd}`);
+      console.log(`waiting for status 200 from kibana for ${this.name}`);
     }
 
     await new Promise(resolve => {
       let cnt = 0;
+
       const again = () => {
-        const time = !cnt++ ? Math.random() * interval : interval;
-        setTimeout(() => wait_for_kibana_helper(cmd, again, resolve, this.name, verbose), time);
+        setTimeout(async() => {
+          const status = await this.kibana_status(verbose);
+          status === 200 ? resolve() : again();
+        }, !cnt++ ? Math.random() * interval : interval);
       };
+
       again();
     });
   }
@@ -171,30 +202,3 @@ export class Node extends BaseNode implements INode {
     this.ip = v.ip;
   }
 }
-
-const wait_for_elastic_helper = async(cmd, again, resolve, name, verbose) => {
-  if (verbose) {
-    console.log(`checking elastic health for ${name}`);
-  }
-
-  try {
-    const res = await Utils.exec(cmd);
-    const d = JSON.parse(<string> res);
-    (d.status !== 'yellow') && (d.status !== 'green') ? again() : resolve();
-  } catch (err) {
-    again();
-  }
-};
-
-const wait_for_kibana_helper = async(cmd, again, resolve, name, verbose) => {
-  if (verbose) {
-    console.log(`checking kibana health for ${name}`);
-  }
-
-  try {
-    const res = await Utils.exec(cmd);
-    res !== '200' ? again() : resolve();
-  } catch (err) {
-    again();
-  }
-};

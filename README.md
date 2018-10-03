@@ -526,6 +526,8 @@ The following tasks are executed in the order you see.
 - `prototype.delete(verbose?: boolean[false])` deletes the hosting VM.
 - `prototype.wait_for_elastic(interval: number[2000], verbose?: boolean[false])` sends health checks to your elastisearch node at port 9200 via `gcloud compute ssh` waiting for cluster state >= yellow. there is an interval between requests you can specify.
 - `prototype.wait_for_kibana(interval: number, verbose?: boolean[false])` sends health checks to your Kibana node at port 5601 via `gcloud compute ssh` waiting for status 200. there is an interval between requests you can specify.
+- `prototype.cluster_state(verbose?: boolean[false]): Promise<string | undefined>` curls the host on port 9200 and asks for its cluster health state. If it succeeds, it resolves with `green | yellow | red`. If it fails or gets no response, it resolves with `undefined`.
+- `prototype.kibana_status(verbose?: boolean[false]): Promise<number | undefined>` curls the host on port 5601 and checks the http status code. If it succeeds, it resolves with a number (like 200). If it fails or gets no response, it resolves with `undefined`.
 - `prototype.curl(cmd: string, verbose?: boolean): Promise` executes the given command on the nodes VM by inserting it into `gcloud compute ssh ... <cmd>`. You MUST wrap cmd either in single quotes or double quotes. expect only curl requests to work as the Container OS file system is locked down.
 
   ```
