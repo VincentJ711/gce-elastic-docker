@@ -69,6 +69,8 @@ export class Image implements IImage {
     this._es_dockerfile =
         `FROM docker.elastic.co/elasticsearch/elasticsearch:${this.es_version}\n` +
         'WORKDIR /usr/share\n' +
+        'RUN yum install epel-release -y\n' +
+        'RUN yum install jq -y\n' +
         `RUN echo '#! /bin/bash' >> ${startup_file}\n` +
         `RUN echo 'ulimit -l unlimited' >> ${startup_file}\n` +
         `RUN echo '/usr/local/bin/docker-entrypoint.sh eswrapper' >> ${startup_file}\n` +
@@ -101,6 +103,7 @@ export class Image implements IImage {
         'RUN yum install -y epel-release\n' +
         'RUN yum install -y nginx\n' +
         'RUN yum install -y httpd-tools\n' +
+        'RUN yum install jq -y\n' +
         `RUN mkdir ${kibana_password_dir}\n` +
 
         // handle nginx config
