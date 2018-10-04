@@ -65,8 +65,8 @@ export class Node extends BaseNode implements INode {
     }
 
     try {
-      const cmd = '"curl -s localhost:9200/_cluster/health"';
-      const res = await this.curl(cmd);
+      const cmd = 'curl -s localhost:9200/_cluster/health';
+      const res = await this.exec(cmd);
       return JSON.parse(<string> res);
     } catch (e) { }
   }
@@ -82,21 +82,6 @@ export class Node extends BaseNode implements INode {
     } catch (e) { }
   }
 
-  // command should be wrapped in "" | ''. let the user decide.
-  async curl(cmd: string, verbose?: boolean) {
-    if (!Utils.is_string(cmd) || !cmd) {
-      throw Error('command missing!');
-    }
-
-    const wrapped_cmd = `gcloud compute ssh ${this.name} --zone ${this.zone} --command ${cmd}`;
-
-    if (verbose) {
-      console.log(`executing: ${wrapped_cmd}`);
-    }
-
-    return await Utils.exec(wrapped_cmd, verbose);
-  }
-
   async delete(verbose?: boolean) {
     const cmd = `printf "y\n" | gcloud compute instances delete ${this.name} --zone ${this.zone}`;
 
@@ -105,6 +90,28 @@ export class Node extends BaseNode implements INode {
     }
 
     await Utils.exec(cmd, verbose);
+  }
+
+  // executes the given command in the container and returns its stdout.
+  // note that the cmd is base64 encoded so we dont have to worry about special
+  // characters like $ or quotes.
+  async exec(cmd: string, verbose?: boolean) {
+    if (!Utils.is_string(cmd) || !cmd) {
+      throw Error('command missing!');
+    }
+
+    const b64 = Buffer.from(cmd).toString('base64');
+
+    // find my containers id, pass it to docker exec and run the given cmd.
+    const wrapped_cmd = `gcloud compute ssh ${this.name} --zone ${this.zone} ` +
+        `--command "sudo docker exec -i \\$(sudo docker ps -a | grep ${this.image} | ` +
+        `cut -d ' ' -f 1) bash -c 'eval \\$(echo ${b64} | base64 --decode)'"`;
+
+    if (verbose) {
+      console.log(`executing the following command\n${wrapped_cmd}`);
+    }
+
+    return await Utils.exec(wrapped_cmd, verbose);
   }
 
   // returns number | undefined
@@ -116,8 +123,8 @@ export class Node extends BaseNode implements INode {
     }
 
     try {
-      const cmd = '"curl -s -o /dev/null -w "%{http_code}" localhost:5601"';
-      const res = await this.curl(cmd);
+      const cmd = 'curl -s -o /dev/null -w "%{http_code}" localhost:5601';
+      const res = await this.exec(cmd);
       return res ? Number(res) : undefined;
     } catch (e) { }
   }
