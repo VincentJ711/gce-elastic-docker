@@ -17,6 +17,7 @@ export interface IReservedEnv {
   'node.ingest': any;
   'node.master': any;
   'node.name': any;
+  'NODE_OPTIONS': any;
 }
 
 export interface IReservedLabels {
@@ -32,6 +33,7 @@ export interface IBaseNode {
   hsize: number;
   image: string;
   ingest?: boolean;
+  khsize?: number;
   kibana?: boolean;
   labels?: {};
   master?: boolean;
@@ -53,6 +55,7 @@ export class BaseNode implements IBaseNode {
   hsize: number;
   image: string;
   ingest: boolean;
+  khsize: number;
   kibana: boolean;
   labels: {};
   master: boolean;
@@ -74,6 +77,7 @@ export class BaseNode implements IBaseNode {
     this.set_env(v.env);
 
     this.set_hsize(v.hsize);
+    this.set_khsize(v.khsize);
     this._set_image(v);
     this._set_ingest(v);
     this._set_kibana(v);
@@ -106,6 +110,7 @@ export class BaseNode implements IBaseNode {
 
     const base: IReservedEnv = {
       ES_JAVA_OPTS: `-Xms${this.hsize}m -Xmx${this.hsize}m`,
+      NODE_OPTIONS: `--max-old-space-size=${this.khsize}`,
       'bootstrap.memory_lock': true,
       'cluster.name': this.cluster_name,
       ged: Buffer.from(JSON.stringify(copy)).toString('base64'),
@@ -134,6 +139,7 @@ export class BaseNode implements IBaseNode {
   set_env(v?: {}) {
     const reserved: IReservedEnv = {
       ES_JAVA_OPTS: true,
+      NODE_OPTIONS: true,
       'bootstrap.memory_lock': true,
       'cluster.name': true,
       ged: true,
@@ -161,9 +167,21 @@ export class BaseNode implements IBaseNode {
 
   set_hsize(v: number) {
     if (!Utils.is_integer(v) || (v < 100) || (v > 31000)) {
-      throw Error(`heap size of ${v} must be an integer from [100, 31000]`);
+      throw Error(`es heap size of ${v} must be an integer from [100, 31000]`);
     }
     this.hsize = v;
+  }
+
+  set_khsize(v?: number) {
+    const val: any = v;
+    if (Utils.is_defined(val)) {
+      if (!Utils.is_integer(val)) {
+        throw Error('kibana heap size not an integer');
+      } else if (val < 100) {
+        throw Error('kibana heap size too small.');
+      }
+    }
+    this.khsize = val ? val : 512;
   }
 
   private _set_cluster_name(v: IBaseNode) {

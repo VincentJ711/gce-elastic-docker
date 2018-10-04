@@ -442,6 +442,7 @@ The following tasks are executed in the order you see.
     ingest?: boolean;
     kibana?: boolean;
     hsize: number;
+    khsize?: number;
     max_map_count?: number;
     env?: {};
     labels?: {};
@@ -460,7 +461,8 @@ The following tasks are executed in the order you see.
   - `data[true]` is this an data node?
   - `ingest[false]` is this an ingest node?
   - `kibana[false]` is this a node w/ Kibana? MUST be set if it is.
-  - `hsize` the heapsize in MB you want to give to Elasticsearch. see [here](https://www.elastic.co/guide/en/elasticsearch/guide/master/heap-sizing.html)
+  - `hsize` the heap size in MB you want to give to Elasticsearch. see [here](https://www.elastic.co/guide/en/elasticsearch/guide/master/heap-sizing.html)
+  - `khsize[512]` the max heap size in MB you want to give to your Kibana NodeJS process. this is the value for V8's `NODE_OPTIONS=--max-old-space-size`.
   - `max_map_count[262144]` see [here](https://www.elastic.co/guide/en/elasticsearch/guide/master/_file_descriptors_and_mmap.html)
   - `env[{}]` any Elasticsearch environment variables you want set along w/ their values. You should only read from this. You should not write to this directly. To write to this, use `BaseNode.prototype.set_env` instead.
   - `labels[{}]` any labels you want set on the VM instance. note, `ged` is reserved; its used by this package to identify VMs this package has made. also note, you can only set labels on create. you cannot change labels or update them later. the reason for this is due to the nature of the `gcloud beta compute instances update-container` command. currently, it does not allow you to set environment variables/labels at the same time. updating a container should only be one command. by splitting it into two commands, you run the risk of label/environment variable inconsistency if by rare chance one of the gcloud update calls fail.
@@ -494,11 +496,13 @@ The following tasks are executed in the order you see.
       'node.data',
       'node.ingest',
       'node.master',
-      'node.name'
+      'node.name',
+      'NODE_OPTIONS'
     ]
     ```
 
 - `prototype.set_hsize(v: number)` the new value you want for the heap size in MB. to persist the changes, you'll need to call `Node.prototype.update`.
+- `prototype.set_khsize(v?: number)` the new value you want for the max Kibana heap size in MB. to persist the changes, you'll need to call `Node.prototype.update`. If `undefined` is given ,the default value of 512 is used.
 
 
 ### ChildNode extends BaseNode
@@ -565,7 +569,7 @@ Currently, 5.x and 6.x should work. When future major versions are released, i'l
 For general insight into how this package works, I strongly recommend you create a single node cluster and set verbose to true.
 
 - What can i / cant i update for a node/VM?
-  - The only things you can update are those fields on `BaseNode.prototype` that have public setter methods, ie methods which do not start with an `_`. Currently this is `BaseNode.prototype.set_env` and `BaseNode.prototype.set_hsize`. Most of the things you will need to update for Elasticsearch/Kibana can be done through setting environment variables.
+  - The only things you can update are those fields on `BaseNode.prototype` that have public setter methods, ie methods which do not start with an `_`. Currently this is `set_env`, `set_hsize` and `set_khsize`. Most of the things you will need to update for Elasticsearch/Kibana can be done through setting environment variables.
 - How do i update a node/VM?
   - call the setter method on the `Node` instance and then call its `prototype.update` method. This method is asynchronous and actually takes the changes you set on the local instance and commits them to the VM instance.
 - How are updates persisted?
