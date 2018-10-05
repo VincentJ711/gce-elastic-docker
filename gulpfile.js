@@ -38,7 +38,7 @@ gulp.task('default', [ 'watch-src' ]);
 
 gulp.task('watch-src', async () => {
   await new Promise(() => {
-    gulp_watch(`./src/**/*.*`, () => gulp.start('flatten-src'));
+    gulp_watch(`./src/**`, () => gulp.start('flatten-src'));
     gulp.start('flatten-src');
   });
 });
