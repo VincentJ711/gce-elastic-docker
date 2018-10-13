@@ -565,7 +565,7 @@ The following tasks are executed in the order you see when a `Node` is being upd
 - `prototype.restart(verbose?: boolean[false])` stops then starts the hosting VM.
 - `prototype.delete(verbose?: boolean[false])` deletes the hosting VM.
 - `prototype.wait_for_elastic(interval: number[2000], verbose?: boolean[false])` sends health checks to your Elasticsearch node waiting for cluster state >= yellow. there is an interval between requests you can specify.
-- `prototype.wait_for_kibana(interval: number, verbose?: boolean[false])` sends health checks to your Kibana node waiting for status 200. there is an interval between requests you can specify.
+- `prototype.wait_for_kibana(interval: number[2000], verbose?: boolean[false])` sends health checks to your Kibana node waiting for status 200. there is an interval between requests you can specify.
 - `prototype.exec(cmd: string, verbose?: boolean): Promise` executes the given command in this nodes container on the VM. If the container is not available, this will throw.
 
   ```
@@ -609,7 +609,7 @@ For general insight into how this package works, I strongly recommend you create
 - What can i / cant i update for a node/VM?
   - The only things you can update are those fields on `BaseNode.prototype` that have public setter methods, ie methods which do not start with an `_`. Currently this is `set_env`, `set_hsize` and `set_khsize`. Most of the things you will need to update for Elasticsearch/Kibana can be done through setting environment variables.
 - How do i update a node/VM?
-  - call the setter method on the `Node` instance and then call its `prototype.update` method. This method is asynchronous and actually takes the changes you set on the local instance and commits them to the VM instance.
+  - call the setter method on the `Node` instance and then call its `prototype.update` method. This method takes the changes you set on the local instance and commits them to the VM instance. You can optionally monitor the tasks found on the returned `NodeUpdateTasks` instance.
 - How are updates persisted?
   - Environment variables can be set for a Container VM. All the environment variables you set/update are set/update there as well. In addition to those you set, this package base64 encodes a stringified version of the `Node` instance and stores it as an environment variable, specifically the `ged` environment variable.
 - How are the VMs this package created distinguished from my other VMs?
@@ -681,6 +681,6 @@ For general insight into how this package works, I strongly recommend you create
     ```
 
 - Which processes are monitored/restarted on my Kibana nodes?
-  - There are 3 processes on this container: Nginx, Kibana and Elasticsearch. if Nginx or Kibana stops, the Elasticsearch process is not affected. you will have to manually restart whichever died. if the Elasticsearch process dies, the container will stop, and the hosting OS will automatically restart the container which will restart all 3 processes.
+  - There are 3 processes in this container: Nginx, Kibana and Elasticsearch. if Nginx or Kibana stops, the Elasticsearch process is not affected. you will have to manually restart whichever died. if the Elasticsearch process dies, the container will stop, and the hosting OS will automatically restart the container which will restart all 3 processes.
 - Which processes are monitored/restarted on my Elasticsearch nodes?
   - In these containers, there is only 1 process, the Elasticsearch process. If this dies, the container will stop, and the hosting OS will automatically restart the container which will then restart the Elasticsearch process.
