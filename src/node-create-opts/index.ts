@@ -10,6 +10,7 @@ export interface INodeCreateOpts {
   interval?: number;
   kibana_network_tag?: string;
   kibana_users?: { [username: string]: string };
+  kso?: any[];
   scripts?: { [name: string]: IElasticScript };
   sm?: object;
   verbose?: boolean;
@@ -19,19 +20,20 @@ export class NodeCreateOpts implements INodeCreateOpts {
   interval: number;
   kibana_network_tag?: string;
   kibana_users: { [username: string]: string };
+  kso: any[];
   scripts: { [name: string]: IElasticScript };
   sm: object;
   verbose: boolean;
 
   constructor(v: INodeCreateOpts) {
-    if (Utils.is_defined(v)) {
-      this._set_interval(v);
-      this._set_kibana_network_tag(v);
-      this._set_kibana_users(v);
-      this._set_scripts(v);
-      this._set_sm(v);
-      this._set_verbose(v);
-    }
+    const o = v || {};
+    this._set_interval(o);
+    this._set_kibana_network_tag(o);
+    this._set_kibana_users(o);
+    this._set_kso(o);
+    this._set_scripts(o);
+    this._set_sm(o);
+    this._set_verbose(o);
   }
 
   get_kibana_users_env_value() {
@@ -77,6 +79,16 @@ export class NodeCreateOpts implements INodeCreateOpts {
 
         this.kibana_users[username] = pass;
       }
+    }
+  }
+
+  private _set_kso(v: INodeCreateOpts) {
+    if (Utils.is_array(v.kso)) {
+      this.kso = <[]> v.kso;
+    } else if (Utils.is_defined(v.kso)) {
+      throw Error('kibana saved objects must be an array.');
+    } else {
+      this.kso = [];
     }
   }
 

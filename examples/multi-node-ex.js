@@ -9,14 +9,14 @@ const kibana_network_tag = 'kibana-network-tag';
 
 const mk_es_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: es_image_name
   })).create(verbose);
 };
 
 const mk_kib_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: kib_image_name,
     kibana: true
   })).create(verbose);
@@ -24,14 +24,14 @@ const mk_kib_image = async () => {
 
 const deploy_es_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: es_image_name
   })).deploy(verbose);
 };
 
 const deploy_kib_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: kib_image_name,
     kibana: true
   })).deploy(verbose);
@@ -58,8 +58,12 @@ const mk_cluster = async () => {
       zone: 'us-west1-a',
       master: !!num,
       data: !!num,
+      ingest: !!num, // ingest is required for monitoring.
       kibana: !num,
-      service_account: gce_service_acc
+      service_account: gce_service_acc,
+      env: {
+        'xpack.monitoring.collection.enabled': true
+      }
     });
   });
 
@@ -90,16 +94,35 @@ const connect_nodes = async (nodes) => {
     const tasks = n.update({
       interval: 20000,
       verbose: verbose,
-      sm: !n.kibana ? {} : {
-        users: {
-          mappings: { _doc: { properties: { name: { type: 'keyword' } } } },
-          settings: { number_of_shards: 1 }
+      kso: [{
+        id: 'e84e14c0-cdeb-11e8-b958-0b2cbb7f0531',
+        type: 'timelion-sheet',
+        updated_at: '2018-10-12T06:56:13.323Z',
+        version: 1,
+        attributes: {
+          title: 'sheet1',
+          hits: 0,
+          description: '',
+          timelion_sheet: [
+            '.es(*).title("I uploaded this.")'
+          ],
+          timelion_interval: 'auto',
+          timelion_chart_height: 275,
+          timelion_columns: 2,
+          timelion_rows: 2,
+          version: 1
         }
-      },
+      }],
       scripts: !n.kibana ? {} : {
         calc_score: {
           lang:'painless',
           source:'Math.log(_score * 2) + params.my_modifier'
+        }
+      },
+      sm: !n.kibana ? {} : {
+        users: {
+          mappings: { _doc: { properties: { name: { type: 'keyword' } } } },
+          settings: { number_of_shards: 1 }
         }
       }
     });
@@ -117,13 +140,17 @@ const connect_nodes = async (nodes) => {
     tasks.kibana_ready.on_end().then(() => console.log(n.name, 5))
         .catch(err => console.error(err, n.name, 5.5));
 
-    tasks.sm_upload.on_start().then(() => console.log(n.name, 6));
-    tasks.sm_upload.on_end().then(r => console.log(n.name, 7, r))
+    tasks.kso_upload.on_start().then(() => console.log(n.name, 6));
+    tasks.kso_upload.on_end().then(r => console.log(n.name, 7, r))
         .catch(err => console.error(err, n.name, 7.5));
 
     tasks.scripts_upload.on_start().then(() => console.log(n.name, 8));
     tasks.scripts_upload.on_end().then(r => console.log(n.name, 9, r))
         .catch(err => console.error(err, n.name, 9.5));
+
+    tasks.sm_upload.on_start().then(() => console.log(n.name, 10));
+    tasks.sm_upload.on_end().then(r => console.log(n.name, 11, r))
+        .catch(err => console.error(err, n.name, 11.5));
 
     return tasks.main.on_end();
   });
@@ -135,7 +162,7 @@ const connect_nodes = async (nodes) => {
 
 const fetch_nodes_for_later = async() => {
   const nodes = await ged.Node.fetch_all(false); // param is verbose
-  console.log('\n', nodes, '\n');
+  console.log(nodes);
 };
 
 const combo = async () => {

@@ -10,7 +10,7 @@ import { EndTask, FullTask, INodeCreateTasks } from '../tasks';
 import { Utils } from '../utils';
 
 export class NodeCreator {
-  private n: ChildNode;
+  private child_node: ChildNode;
   private o: NodeCreateOpts;
 
   constructor(node: ChildNode, opts: NodeCreateOpts) {
@@ -18,7 +18,7 @@ export class NodeCreator {
       throw Error(`missing required kibana network tag for kibana node ${node.name}`);
     }
 
-    this.n = node;
+    this.child_node = node;
     this.o = opts;
   }
 
@@ -26,6 +26,7 @@ export class NodeCreator {
     const tasks: INodeCreateTasks = {
       elastic_ready: new FullTask(),
       kibana_ready: new FullTask(),
+      kso_upload: new FullTask(),
       main: new EndTask(),
       node_create: new FullTask(),
       scripts_upload: new FullTask(),
@@ -37,8 +38,9 @@ export class NodeCreator {
         const node = await this._make_node(tasks.node_create);
         await this._wait_for_elastic(tasks.elastic_ready, node);
         await this._wait_for_kibana(tasks.kibana_ready, node);
-        await this._upload_sm(tasks.sm_upload, node);
+        await this._upload_kso(tasks.kso_upload, node);
         await this._upload_scripts(tasks.scripts_upload, node);
+        await this._upload_sm(tasks.sm_upload, node);
         tasks.main.end_resolve_cb(node);
       } catch (e) {
         tasks.main.end_reject_cb(e);
@@ -53,18 +55,18 @@ export class NodeCreator {
   }
 
   private _get_create_cmd(env_file: string) {
-    const merged_labels = this.n.get_merged_labels();
+    const merged_labels = this.child_node.get_merged_labels();
     const lkeys = Object.keys(merged_labels);
-    const k_tag_line = this.n.kibana ? ` --tags=${this.o.kibana_network_tag}` : '';
+    const k_tag_line = this.child_node.kibana ? ` --tags=${this.o.kibana_network_tag}` : '';
 
-    return `gcloud beta compute instances create-with-container ${this.n.name} ` +
+    return `gcloud beta compute instances create-with-container ${this.child_node.name} ` +
         '--format=json ' +
-        `--boot-disk-size=${this.n.dsize}GB ` +
-        `--boot-disk-type=${this.n.dtype} ` +
-        `--machine-type=${this.n.mtype} ` +
-        `--zone=${this.n.zone} ` +
-        `--service-account=${this.n.service_account} ` + // necessary to pull image
-        `--container-image=${this.n.image} ` +
+        `--boot-disk-size=${this.child_node.dsize}GB ` +
+        `--boot-disk-type=${this.child_node.dtype} ` +
+        `--machine-type=${this.child_node.mtype} ` +
+        `--zone=${this.child_node.zone} ` +
+        `--service-account=${this.child_node.service_account} ` + // necessary to pull image
+        `--container-image=${this.child_node.image} ` +
         '--container-restart-policy=always ' +
         '--container-privileged ' + // necessary to set memlock ulimit
         '--container-mount-host-path=mount-path=' +
@@ -73,7 +75,7 @@ export class NodeCreator {
             'host-path=/home/kibana-users,mode=rw ' +
         `--labels=${lkeys.map(k => `${k}=${merged_labels[k]}`).join(',')} ` +
         '--metadata=startup-script="' +
-            `echo 'vm.max_map_count=${this.n.max_map_count}' > /etc/sysctl.conf; ` +
+            `echo 'vm.max_map_count=${this.child_node.max_map_count}' > /etc/sysctl.conf; ` +
             'sysctl -p; ' +
             'mkdir -m 777 /home/es-data; ' +
             'mkdir -m 777 /home/kibana-users;" ' +
@@ -104,14 +106,14 @@ export class NodeCreator {
       const cmd = this._get_create_cmd(tmp_env_file);
 
       if (this.o.verbose) {
-        console.log(`creating node ${this.n.name} w/ the following command:\n\n${cmd}`);
+        console.log(`creating node ${this.child_node.name} w/ the following command:\n\n${cmd}`);
       }
 
       const res = await Utils.exec(cmd, this.o.verbose);
       removeSync(tmp_env_file);
 
       const dat = JSON.parse(<string> res);
-      const copy: INode = JSON.parse(JSON.stringify(this.n));
+      const copy: INode = JSON.parse(JSON.stringify(this.child_node));
       copy.ip = dat[0].networkInterfaces[0].networkIP;
       copy.created = (new Date(dat[0].creationTimestamp)).valueOf();
 
@@ -123,10 +125,10 @@ export class NodeCreator {
   }
 
   private _make_temp_env_file() {
-    const env = this.n.get_merged_env();
+    const env = this.child_node.get_merged_env();
     const kusers_env_value = this.o.get_kibana_users_env_value();
 
-    if (this.n.kibana && kusers_env_value) {
+    if (this.child_node.kibana && kusers_env_value) {
       env[kibana_users_env_var] = kusers_env_value;
     }
 
@@ -139,6 +141,22 @@ export class NodeCreator {
   private _stop_at_task(task: FullTask, err) {
     task.end_reject_cb(err);
     throw err;
+  }
+
+  private async _upload_kso(task: FullTask, node: Node) {
+    await task.start_resolve_cb();
+
+    let res;
+
+    if (this.child_node.kibana) {
+      try {
+        res = await elastic_uploader.kso(node, this.o.kso, this.o.verbose);
+      } catch (e) {
+        this._stop_at_task(task, e);
+      }
+    }
+
+    task.end_resolve_cb(res);
   }
 
   private async _upload_scripts(task: FullTask, node: Node) {
@@ -171,7 +189,7 @@ export class NodeCreator {
 
   private async _wait_for_kibana(task: FullTask, node: Node) {
     await task.start_resolve_cb();
-    if (this.n.kibana) {
+    if (this.child_node.kibana) {
       await node.wait_for_kibana(this.o.interval, this.o.verbose);
     }
     task.end_resolve_cb();

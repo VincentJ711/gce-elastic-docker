@@ -42,6 +42,7 @@ export class FullTask extends EndTask {
 export interface INodeCreateTasks {
   elastic_ready: FullTask;
   kibana_ready: FullTask;
+  kso_upload: FullTask;
   main: EndTask;
   node_create: FullTask;
   scripts_upload: FullTask;
@@ -51,6 +52,7 @@ export interface INodeCreateTasks {
 export interface INodeUpdateTasks {
   elastic_ready: FullTask;
   kibana_ready: FullTask;
+  kso_upload: FullTask;
   main: EndTask;
   node_update: FullTask;
   scripts_upload: FullTask;

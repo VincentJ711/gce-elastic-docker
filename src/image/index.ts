@@ -108,7 +108,7 @@ export class Image implements IImage {
 
         // handle nginx config
         'COPY nginx.conf /etc/nginx/nginx.conf\n' +
-        'RUN openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 ' +
+        'RUN openssl req -new -newkey rsa:4096 -days 20000 -nodes -x509 ' +
             '-subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" ' +
             `-keyout ${nginx_key_file} -out ${nginx_cert_file}\n` +
         `RUN sed -i 's|~~pfile~~|'${pfile}'|g' /etc/nginx/nginx.conf\n` +

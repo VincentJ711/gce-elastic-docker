@@ -114,6 +114,21 @@ export class Node extends BaseNode implements INode {
     return await Utils.exec(wrapped_cmd, verbose);
   }
 
+  async kibana_saved_objects(verbose?: boolean) {
+    if (!this.kibana) {
+      throw Error(`${this.name} isnt a kibana node!`);
+    }
+
+    const cmd = 'curl localhost:5601/api/saved_objects/_find?per_page=10000';
+
+    if (verbose) {
+      console.log(`fetching kibana saved objects for ${this.name}`);
+    }
+
+    const resp = <string> await this.exec(cmd);
+    return JSON.parse(resp).saved_objects;
+  }
+
   // returns number | undefined
   async kibana_status(verbose?: boolean) {
     if (!this.kibana) {

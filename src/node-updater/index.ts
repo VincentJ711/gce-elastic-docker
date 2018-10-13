@@ -20,6 +20,7 @@ export class NodeUpdater {
     const tasks: INodeUpdateTasks = {
       elastic_ready: new FullTask(),
       kibana_ready: new FullTask(),
+      kso_upload: new FullTask(),
       main: new EndTask(),
       node_update: new FullTask(),
       scripts_upload: new FullTask(),
@@ -31,8 +32,9 @@ export class NodeUpdater {
         await this._update_node(tasks.node_update);
         await this._wait_for_elastic(tasks.elastic_ready);
         await this._wait_for_kibana(tasks.kibana_ready);
-        await this._upload_sm(tasks.sm_upload);
+        await this._upload_kso(tasks.kso_upload);
         await this._upload_scripts(tasks.scripts_upload);
+        await this._upload_sm(tasks.sm_upload);
         tasks.main.end_resolve_cb(this.n);
       } catch (e) {
         tasks.main.end_reject_cb(e);
@@ -84,6 +86,22 @@ export class NodeUpdater {
     }
 
     task.end_resolve_cb(this.n);
+  }
+
+  private async _upload_kso(task: FullTask) {
+    await task.start_resolve_cb();
+
+    let res;
+
+    if (this.n.kibana) {
+      try {
+        res = await elastic_uploader.kso(this.n, this.o.kso, this.o.verbose);
+      } catch (e) {
+        this._stop_at_task(task, e);
+      }
+    }
+
+    task.end_resolve_cb(res);
   }
 
   private async _upload_scripts(task: FullTask) {

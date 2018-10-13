@@ -29,7 +29,7 @@ const es_image_name = `gcr.io/${gce_project_id}/es-image`;
 
 const mk_es_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: es_image_name
   })).create(verbose);
 };
@@ -42,7 +42,7 @@ const kib_image_name = `gcr.io/${gce_project_id}/kib-image`;
 
 const mk_kib_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: kib_image_name,
     kibana: true
   })).create(verbose);
@@ -55,14 +55,14 @@ you can find your registry [here](https://console.cloud.google.com/gcr/images) a
 ```
 const deploy_es_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: es_image_name
   })).deploy(verbose);
 };
 
 const deploy_kib_image = async () => {
   await (new ged.Image({
-    es_version: '6.3.2',
+    es_version: '6.4.2',
     name: kib_image_name,
     kibana: true
   })).deploy(verbose);
@@ -190,7 +190,7 @@ const multi_node_combo = async () => {
 ```
 const fetch_nodes_for_later = async() => {
   const nodes = await ged.Node.fetch_all(verbose);
-  console.log('\n', nodes, '\n');
+  console.log(nodes);
 };
 ```
 
@@ -283,7 +283,7 @@ Everything that follows can be found on the `gce` object. Fields with ? denote a
 - `prototype.on_start(): Promise` denotes when a task has started. it will never reject.
 
 ### INodeCreateTasks
-The following tasks are executed in the order you see.
+The following tasks are executed in the order you see when a `Node` is being created.
 
 ```
 {
@@ -291,8 +291,9 @@ The following tasks are executed in the order you see.
   node_create: FullTask;
   elastic_ready: FullTask;
   kibana_ready: FullTask;
-  sm_upload: FullTask;  
+  kso_upload: FullTask;
   scripts_upload: FullTask;
+  sm_upload: FullTask;  
 }
 ```
 
@@ -300,27 +301,10 @@ The following tasks are executed in the order you see.
 - `node_create` will resolve w/ an instanceof `Node` once the VM has been created.
 - `elastic_ready` concludes when Elasticsearch goes live. it works by submitting `gcloud compute ssh` curl requests to your Elasticsearch nodes VM at regular intervals waiting until it responds w/ a cluster state >= yellow.
 - `kibana_ready` concludes when Kibana goes live. it works by submitting `gcloud compute ssh` curl requests to your Kibana nodes VM at regular intervals waiting until it responds w/ a status of 200. If the node isn't a Kibana node, the task will finish immediately.
-- `sm_upload` concludes once all settings/mappings have been uploaded. If the settings and mappings already existed, this will still resolve.
-  - if settings/mappings are uploaded for a users index, you'll get something like (standard Elasticsearch response)
-
-    ```
-    [{ acknowledged: true, shards_acknowledged: true, index: 'users' }]
-    ```
-
-  - if N indices are uploaded and 1 of them fails, this task will reject with something like (standard Elasticsearch response)
-
-    ```
-    {
-      error: {
-        root_cause: [ [Object] ],
-        type: 'illegal_argument_exception',
-        reason: 'Failed to parse value [0] for setting [index.number_of_shards] must be >= 1'
-      },
-      status: 400
-    }
-    ```
-
-- `scripts_upload` concludes once all scripts have been uploaded (after testing Elasticsearch 6.3.2, it seems that Elasticsearch doesn't complain if you overwrite a script)
+- `kso_upload` uploads any Kibana saved_objects given in `NodeCreateOpts` to the Kibana instance if it's a Kibana container.
+  - if a saved_object is erroneous this will reject w/ that error.
+  - else it will resolve w/ the created saved_objects.
+- `scripts_upload` uploads any scripts given in `NodeCreateOpts` to the node.
   - if two scripts are uploaded successfully, this task will resolve w/ something like (standard Elasticsearch response)
 
     ```
@@ -340,8 +324,29 @@ The following tasks are executed in the order you see.
     }
     ```
 
+- `sm_upload` uploads any settings/mappings given in `NodeCreateOpts` to the node.
+
+  - if settings/mappings are uploaded for a users index, you'll get something like (standard Elasticsearch response)
+
+    ```
+    [{ acknowledged: true, shards_acknowledged: true, index: 'users' }]
+    ```
+
+  - if N indices are uploaded and 1 of them fails, this task will reject with something like (standard Elasticsearch response)
+
+    ```
+    {
+      error: {
+        root_cause: [ [Object] ],
+        type: 'illegal_argument_exception',
+        reason: 'Failed to parse value [0] for setting [index.number_of_shards] must be >= 1'
+      },
+      status: 400
+    }
+    ```
+
 ### INodeUpdateTasks
-The following tasks are executed in the order you see.
+The following tasks are executed in the order you see when a `Node` is being updated.
 
 ```
 {
@@ -349,8 +354,9 @@ The following tasks are executed in the order you see.
   node_update: FullTask;
   elastic_ready: FullTask;
   kibana_ready: FullTask;
-  sm_upload: FullTask;
+  kso_upload: FullTask;
   scripts_upload: FullTask;
+  sm_upload: FullTask;
 }
 ```
 
@@ -358,8 +364,9 @@ The following tasks are executed in the order you see.
 - `node_update` will resolve w/ an instanceof Node once the VM has been updated.
 - `elastic_ready` ""
 - `kibana_ready` ""
-- `sm_upload` ""
+- `kso_upload` ""
 - `scripts_upload` ""
+- `sm_upload` ""
 
 ### IElasticScript
 ```
@@ -375,6 +382,7 @@ The following tasks are executed in the order you see.
   interval?: number;
   kibana_network_tag?: string;
   kibana_users?: { [username: string]: string };
+  kso?: any[];
   scripts?: { [name: string]: IElasticScript };
   sm?: object;
   verbose?: boolean;
@@ -389,6 +397,32 @@ The following tasks are executed in the order you see.
     'meryl': 'streep',
     'tom': 'hanks'
   }
+  ```
+
+- `kso[empty array]` an array of [Kibana saved_objects](https://www.elastic.co/guide/en/kibana/current/saved-objects-api.html). use this when you want to create the Kibana instance for the container w/ charts/dashboards you've previously saved from another Kibana instance. To fetch the saved_objects from a currently running Kibana instance, call its `Node.prototype.kibana_saved_objects` method. A saved_objects array looks like:
+
+  ```
+  [
+    {
+      "id": "e84e14c0-cdeb-11e8-b958-0b2cbb7f0531",
+      "type": "timelion-sheet",
+      "updated_at": "2018-10-12T08:37:00.919Z",
+      "version": 1,
+      "attributes": {
+        "title": "sheet1",
+        "hits": 0,
+        "description": "",
+        "timelion_sheet": [
+          ".es(*).title(\"I uploaded this.\")"
+        ],
+        "timelion_interval": "auto",
+        "timelion_chart_height": 275,
+        "timelion_columns": 2,
+        "timelion_rows": 2,
+        "version": 1
+      }
+    }
+  ]
   ```
 
 - `scripts[{}]` an object of Elasticsearch scripts. the root keys are the script ids and their values are the scripts themselves.
@@ -419,6 +453,7 @@ The following tasks are executed in the order you see.
 ```
 {
   interval?: number;
+  kso?: any[];
   scripts?: { [name: string]: IElasticScript };
   sm?: object;
   verbose?: boolean;
@@ -426,6 +461,7 @@ The following tasks are executed in the order you see.
 ```
 
 - `interval[2000]` ""
+- `kso[empty array]` ""
 - `scripts[{}]` ""
 - `sm[{}]` ""
 - `verbose[false]`
@@ -464,7 +500,7 @@ The following tasks are executed in the order you see.
   - `hsize` the heap size in MB you want to give to Elasticsearch. see [here](https://www.elastic.co/guide/en/elasticsearch/guide/master/heap-sizing.html)
   - `khsize[512]` the max heap size in MB you want to give to your Kibana NodeJS process. this is the value for V8's `NODE_OPTIONS=--max-old-space-size`.
   - `max_map_count[262144]` see [here](https://www.elastic.co/guide/en/elasticsearch/guide/master/_file_descriptors_and_mmap.html)
-  - `env[{}]` any Elasticsearch environment variables you want set along w/ their values. You should only read from this. You should not write to this directly. To write to this, use `BaseNode.prototype.set_env` instead.
+  - `env[{}]` any Elasticsearch/Kibana Docker environment variables you want set along w/ their values. You should only read from this. You should not write to this directly. To write to this, use `BaseNode.prototype.set_env` instead.
   - `labels[{}]` any labels you want set on the VM instance. note, `ged` is reserved; its used by this package to identify VMs this package has made. also note, you can only set labels on create. you cannot change labels or update them later. the reason for this is due to the nature of the `gcloud beta compute instances update-container` command. currently, it does not allow you to set environment variables/labels at the same time. updating a container should only be one command. by splitting it into two commands, you run the risk of label/environment variable inconsistency if by rare chance one of the gcloud update calls fail.
   - `zone` the GCE zone you want to place this nodes VM in.
   - `mtype` the GCE machine type you want to use for this nodes VM.
@@ -561,9 +597,11 @@ The following tasks are executed in the order you see.
 
 - `prototype.cluster_state(verbose?: boolean[false]): Promise<string | undefined>` curls the host on port 9200 and asks for its cluster health state. If it succeeds, it resolves with `green | yellow | red`. If it fails or gets no response, it resolves with `undefined`.
 - `prototype.kibana_status(verbose?: boolean[false]): Promise<number | undefined>` curls the host on port 5601 and checks the http status code. If it succeeds, it resolves with a number (like 200). If it fails or gets no response, it resolves with `undefined`.
+- `prototype.kibana_saved_objects(verbose?: boolean[false]): Promise<[]>` curls the host on port 5601 @ `/api/saved_objects/_find` and returns the saved_objects array. will throw if this isn't a Kibana node. I believe this api endpoint was added in 6.4, so don't call this if your image was for an es version < 6.4. (see [here](https://www.elastic.co/guide/en/kibana/master/saved-objects-api.html))
+
 
 ## supported versions of Elasticsearch/Kibana
-Currently, 5.x and 6.x should work. When future major versions are released, i'll do my best to keep up to date.
+Currently, 5.x and 6.x should work. The only part I have to keep up to date are the supported Docker environment variables for Elasticsearch/Kibana. These seem to be updated for each major/minor version.
 
 ## FAQ
 For general insight into how this package works, I strongly recommend you create a single node cluster and set verbose to true.
