@@ -1,6 +1,6 @@
 {
   "name": "gce-elastic-docker",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "main": "dist/src/entry",
   "scripts": {
     "main": "npm run tsc && npm run lint && npm run flatten",

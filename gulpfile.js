@@ -36,7 +36,7 @@ const handle_ts_files = async () => {
 const handle_other_files = async () => {
   await new Promise(res => {
     gulp.src([
-      `src/**/*.*`,
+      `src/**/*`,
       `!src/**/*.ts`
     ]).pipe(cache())
       .pipe(gulp.dest(`dist/src`))
