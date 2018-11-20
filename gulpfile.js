@@ -1,59 +1,50 @@
 const argv = require('yargs').argv;
 const cache = require('gulp-cached');
 const gulp = require('gulp');
-const gulp_rename = require('gulp-rename');
 const gulp_watch = require('gulp-watch');
 const ts = require('gulp-typescript');
-const vinyl_source = require('vinyl-source-stream');
 const exec = require('child_process').exec;
 
 const ts_project = ts.createProject('tsconfig.json', {
-  isolatedModules: !argv.c,
-  declaration: true
+  isolatedModules: !argv.c
 });
 
-const rename = (next_path) => {
-  const split = next_path.dirname.split('/');
-  const len = split.length - (next_path.dirname.endsWith('test') ? 2 : 1);
-  split.splice(0,len);
-  next_path.dirname = split.join('/');
-};
+gulp.task('default', [ 'watch' ]);
 
-const handle_typescript_files = () => {
-  return gulp.src([`./src/**/*.ts`])
-      .pipe(cache())
-      .pipe(ts_project())
-      .pipe(gulp_rename(rename))
-      .pipe(gulp.dest('./dist'));
-};
-
-const handle_other_files = () => {
-  return gulp.src([`./src/**`, `!./src/**/*.ts`])
-    .pipe(cache())
-    .pipe(gulp_rename(rename))
-    .pipe(gulp.dest('./dist'));
-};
-
-gulp.task('default', [ 'watch-src' ]);
-
-gulp.task('watch-src', async () => {
+gulp.task('watch', async () => {
   await new Promise(() => {
-    gulp_watch(`./src/**`, () => gulp.start('flatten-src'));
-    gulp.start('flatten-src');
+    gulp_watch([ 'src/**/*.*' ], () => gulp.start('flatten'));
+    gulp.start('flatten');
   });
 });
 
-gulp.task('flatten-src', async () => {
-  await new Promise(resolve => {
-    handle_typescript_files()
-        .on('finish', handle_other_files)
-        .on('finish', () => {
-      resolve();
-    });
-  });
+gulp.task('flatten', async () => {
+  await handle_ts_files();
+  await handle_other_files();
 });
 
-gulp.task('regen-gce', async () => {
+const handle_ts_files = async () => {
+  await new Promise(res => {
+    ts_project.src()
+        .pipe(cache())
+        .pipe(ts_project())
+        .pipe(gulp.dest('dist'))
+        .on('finish', res);
+  });
+};
+
+const handle_other_files = async () => {
+  await new Promise(res => {
+    gulp.src([
+      `src/**/*.*`,
+      `!src/**/*.ts`
+    ]).pipe(cache())
+      .pipe(gulp.dest(`dist/src`))
+      .on('finish', res);
+  });
+};
+
+gulp.task('gce', async () => {
   const cmd = `gcloud compute machine-types list --format=json`;
   await new Promise((resolve, reject) => {
     exec(cmd, { maxBuffer: 1024 * 100000 }, (err, stdout) => {
